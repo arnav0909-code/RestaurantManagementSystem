@@ -1,75 +1,144 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8" />
+    <title>Receipt</title>
     <style>
-    .container {
-    width: 595pt;
-    height: 842pt;
-    display: flex;
-    overflow: auto;
-    align-items: center;
-    flex-direction: column;
-    }
- 
-  .text {
-    top: 30pt;
-    left: 260pt;
-    margin: auto;
-    position: absolute;
-  }
-  .text1 {
-    top: 80pt;
-    left: 265pt;
-    position: absolute;
-    font-size: 24pt;
-  }
-  .text2 {
-    top: 130pt;
-    left: 85pt;
-    position: absolute;
-    font-size: 20pt;
-  }
-  .text3 {
-    top: 130pt;
-    left: 275pt;
-    position: absolute;
-    font-size: 20pt;
-  }
-  .text4 {
-    top: 130pt;
-    right: 85pt;
-    position: absolute;
-    font-size: 20pt;
-  }
-  hr {
-  border: none;
-  border-top: 1px dotted #000;
-  color: #fff;
-  background-color: #fff;
-  height: 1px;
-  width: 80%;
-  top: 150pt;
-  position: absolute;
-}
+      @page { size: A4; margin: 18mm 16mm; }
 
-  @media print {
-  @page {
-    size: A4;
-  }
-}
+      body {
+        margin: 0;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        color: #1c1917;
+        background: #ffffff;
+      }
 
+      .sheet {
+        width: 100%;
+        max-width: 165mm;
+        margin: 0 auto;
+      }
 
+      header {
+        text-align: center;
+        border-bottom: 2px solid #b45309;
+        padding-bottom: 10px;
+        margin-bottom: 18px;
+      }
+
+      .fac-name {
+        margin: 0;
+        font-size: 22pt;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+
+      .meta {
+        margin: 6px 0 0;
+        font-size: 10pt;
+        color: #57534e;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11pt;
+      }
+
+      thead th {
+        text-align: left;
+        font-size: 9pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #78716c;
+        padding: 0 10px 7px 10px;
+        border-bottom: 1px solid #d6d3d1;
+      }
+
+      thead th.num,
+      tbody td.num,
+      tfoot td.num {
+        text-align: right;
+      }
+
+      tbody td {
+        padding: 9px 10px;
+        border-bottom: 1px solid #f0efed;
+        vertical-align: top;
+      }
+
+      tbody tr:nth-child(even) td {
+        background: #fafaf9;
+      }
+
+      tbody td.name {
+        width: 62%;
+      }
+
+      tbody td.qty {
+        width: 14%;
+        color: #57534e;
+      }
+
+      tbody td.price {
+        width: 24%;
+        font-variant-numeric: tabular-nums;
+      }
+
+      tfoot td {
+        padding: 12px 10px 0 10px;
+        font-size: 12pt;
+        font-weight: 700;
+        color: #b45309;
+        font-variant-numeric: tabular-nums;
+      }
+
+      tfoot .summary {
+        font-weight: 400;
+        font-size: 9pt;
+        color: #78716c;
+        text-align: right;
+        padding-top: 2px;
+      }
+
+      footer {
+        margin-top: 26px;
+        padding-top: 10px;
+        border-top: 1px dashed #d6d3d1;
+        text-align: center;
+        font-size: 9pt;
+        color: #a8a29e;
+      }
     </style>
   </head>
   <body onload="window.print()">
-    <div class='container'>
-        <h1 class='text'>Fac_name</h1>
-        <span class='text1'>t_num</span>
-        <span class='text2'>Name</span>
-        <span class='text3'>Quantity</span>
-        <span class='text4'>Price</span>
-        <hr>
-      </div>
+    <div class="sheet">
+      <header>
+        <h1 class="fac-name">Fac_name</h1>
+        <p class="meta">t_num</p>
+      </header>
+
+      <table>
+        <thead>
+          <tr>
+            <th class="name">Item</th>
+            <th class="num">Qty</th>
+            <th class="num">Price</th>
+          </tr>
+        </thead>
+        <tbody id="items"></tbody>
+        <tfoot>
+          <tr>
+            <td class="num summary" colspan="3">summary</td>
+          </tr>
+          <tr>
+            <td class="num" colspan="3">total</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <footer>Thank you for dining with us.</footer>
+    </div>
   </body>
-  
 </html>

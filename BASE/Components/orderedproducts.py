@@ -2,7 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 from sqlite3 import Error
 
-from database import Database
+from Database import Database
+from style import SURFACE
 
 
 class OrderedProducts(tk.Frame):
@@ -29,20 +30,23 @@ class OrderedProducts(tk.Frame):
             height=10,
             selectmode='browse'
         )
-        self.tr_view.column('name', width=200, anchor=tk.CENTER)
-        self.tr_view.column('quantity', width=100, anchor=tk.CENTER)
-        self.tr_view.column('orderstatus', width=200, anchor=tk.CENTER)
+        self.tr_view.column('name', width=270, anchor=tk.W)
+        self.tr_view.column('quantity', width=90, anchor=tk.CENTER)
+        self.tr_view.column('orderstatus', width=140, anchor=tk.CENTER)
 
         self.tr_view.heading('name', text="Product Name")
-        self.tr_view.heading('quantity', text="Quantity")
-        self.tr_view.heading('orderstatus', text="Order Status")
+        self.tr_view.heading('quantity', text="Qty")
+        self.tr_view.heading('orderstatus', text="Status")
+
+        self.tr_view.tag_configure('odd', background=SURFACE)
+        self.tr_view.tag_configure('even', background='#f5f5f4')
 
         self.tr_view.grid(column=0, row=0, rowspan=6,
-                          columnspan=3, pady=10, padx=10, ipadx=5, ipady=5)
+                          columnspan=3, pady=(8, 0), padx=0)
 
         self.tr_v_vscr = ttk.Scrollbar(
             self.tb, orient="vertical", command=self.tr_view.yview)
-        self.tr_v_vscr.grid(column=3, row=0, rowspan=6,  sticky=tk.NS)
+        self.tr_v_vscr.grid(column=3, row=0, rowspan=6,  sticky=tk.NS, pady=(8, 0))
 
         self.tr_view.config(yscrollcommand=self.tr_v_vscr.set)
 
@@ -50,14 +54,18 @@ class OrderedProducts(tk.Frame):
 
         self.tr_view.bind("<ButtonRelease-1>", self.selected_item)
 
+        btn_row = ttk.Frame(self.tb)
+        btn_row.grid(column=0, row=7, columnspan=4, sticky=tk.E, pady=(14, 4))
+
         self.cooked_btn = ttk.Button(
-            self.tb, text=f"Cooked", command=self.change_state)
-        self.cooked_btn.grid(column=1, row=7, padx=(0, 200), pady=10)
+            btn_row, text=f"Cooked", command=self.change_state)
+        self.cooked_btn.grid(column=0, row=0, padx=(0, 8))
         self.cooked_btn.config(state='disabled')
 
         self.flf_btn = ttk.Button(
-            self.tb, text="Fulfil order", command=self.fulfil_order, state=tk.DISABLED)
-        self.flf_btn.grid(column=1, row=7, padx=(200, 0), pady=10)
+            btn_row, text="Fulfil order", style="Accent.TButton",
+            command=self.fulfil_order, state=tk.DISABLED)
+        self.flf_btn.grid(column=1, row=0)
 
         self.populate_menu()
 
@@ -65,28 +73,17 @@ class OrderedProducts(tk.Frame):
 
     def init_database(self):
         self.fac_db = Database("restaurant.db")
-
-        cooked_orders = """
-        CREATE TABLE IF NOT EXISTS cooked_orders(
-            id integer PRIMARY KEY,
-            table_num integer NOT NULL, 
-            product_name text NOT NULL,
-            order_quantity integer NOT NULL,
-            order_price integer NOT NULL
-        );
-        """
-
-        self.fac_db.create_table(cooked_orders)
+        self.fac_db.ensure_cooked_orders()
 
     def populate_menu(self):
         retrieve_query = """SELECT id, table_num, product_name,  SUM(order_quantity) as order_quantity, order_status  FROM orders WHERE table_num = ? GROUP BY product_name ;
             """
         res = self.fac_db.read_val(retrieve_query, (self.t_num,))
-        for r in res:
+        for i, r in enumerate(res):
             product_name = r[2]
             product_quantity = f"x{r[3]}"
             order_status = r[4]
-            self.tr_view.insert('', tk.END, values=(
+            self.tr_view.insert('', tk.END, tags=('even' if i % 2 else 'odd',), values=(
                 product_name, product_quantity, order_status))
 
     def check_for_cooked(self):
@@ -128,11 +125,17 @@ class OrderedProducts(tk.Frame):
 
     def store_cooked_orders(self):
         try:
-            load_query = """SELECT * FROM cooked_orders ORDER BY id DESC LIMIT 1; """
-            spec_insert_query = """INSERT INTO cooked_orders VALUES (?, ?, ?,  ?, ?)"""
+            bill_id = self.fac_db.next_bill_id()
+            spec_insert_query = """
+                INSERT INTO cooked_orders
+                    (id, table_num, product_name, order_quantity, order_price,
+                     bill_id, billed)
+                VALUES (?, ?, ?, ?, ?, ?, 0)
+                """
             for item in self.tr_view.get_children():
-                result = self.fac_db.read_val(load_query)
-                if result:
+                result = self.fac_db.read_val(
+                    "SELECT MAX(id) FROM cooked_orders")
+                if result and result[0][0] is not None:
                     order_id = result[0][0] + 1
                 else:
                     order_id = 1
@@ -142,14 +145,19 @@ class OrderedProducts(tk.Frame):
                 or_price = float(self.get_product_price(or_name))
                 or_total = or_quantity * or_price
                 self.fac_db.insert_spec_config(
-                    spec_insert_query, (order_id, self.t_num, or_name, or_quantity, or_total))
+                    spec_insert_query,
+                    (order_id, self.t_num, or_name, or_quantity,
+                     or_total, bill_id))
         except Error as e:
             print(e)
 
     def update_order_db(self):
         try:
-            delete_query = """DELETE FROM orders WHERE order_status = ?"""
-            self.fac_db.delete_val(delete_query, ["Cooked"])
+            delete_query = """
+                DELETE FROM orders
+                WHERE order_status = ? AND table_num = ?
+                """
+            self.fac_db.delete_val(delete_query, ["Cooked", self.t_num])
         except Error as e:
             print(e)
 
